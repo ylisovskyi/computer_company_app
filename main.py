@@ -28,10 +28,11 @@ login_manager.login_view = "login"
 # silly user model
 class User(UserMixin):
 
-    def __init__(self, id):
+    def __init__(self, id, username=None, password=None, email=None):
         self.id = id
-        self.name = "user" + str(id)
-        self.password = self.name + "_secret"
+        self.name = "user" + str(id) if username is None else username
+        self.password = self.name + "_secret" if password is None else password
+        self.email = email
 
     def __repr__(self):
         return "%d/%s/%s" % (self.id, self.name, self.password)
@@ -48,21 +49,20 @@ def home():
     return Response("Hello World!")
 
 
-# somewhere to login
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/register_user/", methods=["POST"])
+def register_user():
+    username = request.form['username']
+    email = request.form['email']
+    password = request.form['password']
+    id = username[::2]
+    user = User(id, username, password, email)
+    login_user(user)
+    return redirect(request.args.get("next"))
+
+
+@app.route("/login", methods=["GET"])
 def login():
-    if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        if password == username + "_secret":
-            id = username.split('user')[1]
-            user = User(id)
-            login_user(user)
-            return redirect(request.args.get("next"))
-        else:
-            return abort(401)
-    else:
-        return render_template('login.html')
+    return render_template('login.html')
 
 
 # somewhere to logout
@@ -85,9 +85,18 @@ def load_user(userid):
     return User(userid)
 
 
-@app.route('/register/')
+@app.route('/register/', methods=['GET', 'POST'])
 def welcome_page():
-    return render_template('form.html', context=mock_data)
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        id = username[::2]
+        user = User(id, username, password, email)
+        login_user(user)
+        return redirect(request.args.get("next"))
+    else:
+        return render_template('register.html')
 
 
 if __name__ == '__main__':
