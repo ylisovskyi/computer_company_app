@@ -62,13 +62,7 @@ def login():
         else:
             return abort(401)
     else:
-        return Response('''
-        <form action="" method="post">
-            <p><input type=text name=username>
-            <p><input type=password name=password>
-            <p><input type=submit value=Login>
-        </form>
-        ''')
+        return render_template('login.html')
 
 
 # somewhere to logout
@@ -91,7 +85,7 @@ def load_user(userid):
     return User(userid)
 
 
-@app.route('/welcome')
+@app.route('/register/')
 def welcome_page():
     return render_template('form.html', context=mock_data)
 
