@@ -1,17 +1,20 @@
-from flask import Flask, Response, redirect, url_for, request, session, abort, render_template
+import os
+
+from flask import Flask, Response, request, render_template, redirect, url_for
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user
+
+from flask_sqlalchemy import SQLAlchemy
+
 
 app = Flask(__name__)
 
 
-mock_data = [
-    {'name': 'Yurii', 'surname': 'Lisovskyi', 'phone_number': '+380964096774'},
-    {'name': 'Iryna', 'surname': 'Kutna', 'phone_number': '+380964096774'},
-    {'name': 'Danylo', 'surname': 'Skliarov', 'phone_number': '+380964096774'},
-    {'name': 'Mayya', 'surname': 'Vu', 'phone_number': '+380964096774'},
-    {'name': 'Ihor', 'surname': 'Pankiv', 'phone_number': '+380964096774'},
-    {'name': 'Bohdan', 'surname': 'Kaminskyi', 'phone_number': '+380964096774'}
-]
+project_dir = os.path.dirname(os.path.abspath(__file__))
+database_file = "sqlite:///{}".format(os.path.join(project_dir, "computer_company.db"))
+app.config["SQLALCHEMY_DATABASE_URI"] = database_file
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
+
+db = SQLAlchemy(app)
 
 # config
 app.config.update(
@@ -25,21 +28,19 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 
-# silly user model
-class User(UserMixin):
+class User(UserMixin, db.Model):
 
-    def __init__(self, id, username=None, password=None, email=None):
-        self.id = id
-        self.name = "user" + str(id) if username is None else username
-        self.password = self.name + "_secret" if password is None else password
-        self.email = email
+    __tablename__ = 'user'
 
-    def __repr__(self):
-        return "%d/%s/%s" % (self.id, self.name, self.password)
-
-
-# create some users with ids 1 to 20
-users = [User(id) for id in range(1, 21)]
+    user_id = db.Column(
+        db.Integer,
+        unique=True,
+        nullable=False,
+        primary_key=True,
+        autoincrement=True
+    )
+    username = db.Column(db.String(25), unique=True, nullable=False)
+    password = db.Column(db.String(64), nullable=False)
 
 
 # some protected url
@@ -49,19 +50,42 @@ def home():
     return Response("Hello World!")
 
 
-@app.route("/register_user/", methods=["POST"])
+@app.route('/admin/')
+def admin_page():
+    return render_template('admin.html')
+
+
+@app.route("/register/", methods=["GET", "POST"])
 def register_user():
-    username = request.form['username']
-    email = request.form['email']
-    password = request.form['password']
-    id = username[::2]
-    user = User(id, username, password, email)
-    login_user(user)
-    return redirect(request.args.get("next"))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['pass']
+        _user = User.query.filter_by(username=username).first()
+        if _user:
+            return 'Such user already exists'
+
+        else:
+            _user = User(username=username, password=password)
+            print _user.username
+            db.session.add(_user)
+            db.session.commit()
+
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
 
 
-@app.route("/login", methods=["GET"])
+@app.route("/login/", methods=["GET", "POST"])
 def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        if user is not None and user.password == password:
+            return render_template('admin.html')
+
+        return 'No such user'
+
     return render_template('login.html')
 
 
@@ -81,22 +105,8 @@ def page_not_found(e):
 
 # callback to reload the user object
 @login_manager.user_loader
-def load_user(userid):
-    return User(userid)
-
-
-@app.route('/register/', methods=['GET', 'POST'])
-def welcome_page():
-    if request.method == 'POST':
-        username = request.form['username']
-        email = request.form['email']
-        password = request.form['password']
-        id = username[::2]
-        user = User(id, username, password, email)
-        login_user(user)
-        return redirect(request.args.get("next"))
-    else:
-        return render_template('register.html')
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 if __name__ == '__main__':
