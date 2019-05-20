@@ -51,22 +51,24 @@
 						</span>
 					</div>
 
-					<div class="wrap-input100 validate-input" data-validate = "Password is required">
-						<input class="input100" type="password" name="pass" placeholder="Password">
+                    <div class="wrap-input100 validate-input" data-validate = "Password is required">
+						<input class="input100" name="pass" placeholder="Password">
 						<span class="focus-input100"></span>
 						<span class="symbol-input100">
 							<i class="fa fa-lock" aria-hidden="true"></i>
 						</span>
 					</div>
-                    <!--
-                    <div class="wrap-input100 validate-input" data-validate = "Repeated password should match the initial password">
-						<input class="input100" type="password" name="reppass" placeholder="RepeatPassword">
+
+                    <div class="wrap-input100 validate-input">
+                        <select class="input100" name="role">
+                            <option value="client">Client</option>
+                            <option value="employee">Employee</option>
+                            <option value="manager">Manager</option>
+                        </select>
 						<span class="focus-input100"></span>
-						<span class="symbol-input100">
-							<i class="fa fa-lock" aria-hidden="true"></i>
-						</span>
+						<span class="symbol-input100"></span>
 					</div>
-                    -->
+
 					<div class="container-login100-form-btn">
 						<button class="login100-form-btn" type="submit">
 							Register
