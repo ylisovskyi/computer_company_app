@@ -73,18 +73,30 @@ def home():
     return Response("Hello World!")
 
 
-@app.route('/admin/')
-@login_required
-def admin_page():
-    return render_template('admin_main.html')
-
-
 @app.route('/orders/')
 @login_required
 def orders_page():
     orders = Orders.query
-    client = app.config['user'].username
-    return render_template('orders.html', orders=orders, current_user=client)
+    user = app.config['user']
+    return render_template(
+        'orders.html',
+        orders=orders,
+        current_user=user.username,
+        role=user.role,
+        title='Orders',
+    )
+
+
+@app.route('/users/')
+@login_required
+def users_page():
+    users = User.query
+    return render_template(
+        'users_table.html',
+        users=users,
+        role='admin',
+        title='Users'
+    )
 
 
 @app.route("/register/", methods=["GET", "POST"])
@@ -118,10 +130,10 @@ def login():
             login_user(user)
             app.config['user'] = user
             if user.role == 'admin':
-                return render_template('admin_main.html')
+                return redirect(url_for('users_page'))
 
             elif user.role == 'client':
-                return render_template('client_main.html')
+                return redirect(url_for('orders_page'))
 
         return 'No such user'
 

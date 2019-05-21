@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+
+<style>
+    #customers {
+      font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    #customers td, #customers th {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    #customers tr:nth-child(even){background-color: #f2f2f2;}
+
+    #customers tr:hover {background-color: #ddd;}
+
+    #customers th {
+      padding-top: 12px;
+      padding-bottom: 12px;
+      text-align: left;
+      background-color: #4CAF50;
+      color: white;
+    }
+</style>
+
+{% block topnav %}
+
+    <div class="topnav">
+        {% if role == 'admin' %}
+        <a {% if title == 'Users' %}class="active"{% endif %} href="../users/">Users</a>
+        {% endif %}
+        <a {% if title == 'Orders' %}class="active"{% endif %} href="../orders/">Orders</a>
+        {% if role == 'admin' %}
+        <a {% if title == 'Clients' %}class="active"{% endif %} href="../clients/">Clients</a>
+        {% endif %}
+        {% if role in ('admin', 'manager') %}
+        <a {% if title == 'Parts' %}class="active"{% endif %} href="../parts/">Parts</a>
+        {% endif %}
+        {% if role == 'admin' %}
+        <a {% if title == 'Companies' %}class="active"{% endif %} href="../companies/">Companies</a>
+        {% endif %}
+        {% if role in ('admin', 'manager') %}
+        <a {% if title == 'Employees' %}class="active"{% endif %} href="../employees/">Employees</a>
+        {% endif %}
+    </div>
+
+{% endblock %}
+{% block body %}
+{% endblock %}
+
+</html>

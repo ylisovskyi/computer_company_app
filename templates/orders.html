@@ -1,15 +1,18 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Orders</title>
-</head>
+{% extends 'tables_template.html' %}
+
+{% block body %}
 <body>
 
-    <table>
+    <table id="customers">
         {% for order in orders %}
         <tr>
-        {% if current_user == order.client %}
+        {% if role not in ('admin', 'manager') and current_user == order.client %}
+            <td>{{ order.order_id }}</td>
+            <td>{{ order.client }}</td>
+            <td>{{ order.part }}</td>
+            <td>{{ order.status }}</td>
+        {% endif %}
+        {% if role in ('admin', 'manager') %}
             <td>{{ order.order_id }}</td>
             <td>{{ order.client }}</td>
             <td>{{ order.part }}</td>
@@ -20,4 +23,4 @@
     </table>
 
 </body>
-</html>
+{% endblock %}
