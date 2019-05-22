@@ -3,7 +3,14 @@
 {% block body %}
 <body>
 
+<div style="padding-top: 20px">
     <table id="customers">
+        <tr style="font-weight: bold">
+            <td>Order ID</td>
+            <td>Client name</td>
+            <td>Part name</td>
+            <td>Order status</td>
+        </tr>
         {% for order in orders %}
         <tr>
         {% if role not in ('admin', 'manager') and current_user == order.client %}
@@ -21,6 +28,7 @@
         </tr>
         {% endfor %}
     </table>
+</div>
 
 </body>
 {% endblock %}

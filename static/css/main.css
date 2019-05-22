@@ -318,7 +318,6 @@ iframe {
   display: -ms-flexbox;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   padding-top: 20px;
 }
 
@@ -339,7 +338,6 @@ iframe {
   display: -ms-flexbox;
   display: flex;
   justify-content: center;
-  align-items: center;
   padding: 0 25px;
 
   -webkit-transition: all 0.4s;

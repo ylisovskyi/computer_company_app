@@ -87,6 +87,17 @@ def orders_page():
     )
 
 
+@app.route('/add_user/')
+@login_required
+def add_user_page():
+    user = app.config['user']
+    return render_template(
+        'add_user.html',
+        role=user.role,
+        title='Add user',
+    )
+
+
 @app.route('/users/')
 @login_required
 def users_page():
