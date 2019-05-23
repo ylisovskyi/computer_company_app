@@ -18,7 +18,7 @@
                 <td style="width: 300px">{{ user.username }}</td>
                 <td>{{ user.role }}</td>
                 <td><button class="login100-form-btn" style="height: 30px">Edit</button></td>
-                <td><button class="login100-form-btn" style="height: 30px">Remove</button></td>
+                <td><button class="login100-form-btn" style="height: 30px"><a href="/remove-user?user-id={{ user.user_id }}">Remove</a></button></td>
             </tr>
             {% endfor %}
         </table>

@@ -64,6 +64,21 @@ class Orders(db.Model):
     status = db.Column(db.String(10), nullable=False)
 
 
+@app.route('/remove-user')
+@login_required
+def remove_user():
+    user_id = request.args.get('user-id')
+    User.query.filter_by(user_id=user_id).delete()
+    db.session.commit()
+    return redirect(url_for('users_page'))
+
+
+@app.route('/edit-user')
+@login_required
+def edit_user():
+    pass
+
+
 @app.route('/')
 @login_required
 def home():
