@@ -1,0 +1,60 @@
+{% extends 'tables_template.html' %}
+
+
+{% block body %}
+<body>
+<div style="padding-top: 20px"></div>
+<h2 style="font-family: Montserrat-Bold"> Create order </h2>
+<br>
+    <form class="login100-form validate-form" action="../create_order/" style="margin-left: 20px">
+        {% if role in ('admin', 'manager') %}
+        <div class="wrap-input100">
+            <select class="input100" name="client">
+                {% for (client_id, client) in clients %}
+                    <option value={{ client_id }}>{{ client }}</option>
+                {% endfor %}
+            </select>
+            <span class="focus-input100"></span>
+            <span class="symbol-input100">
+                <i class="fa fa-user" aria-hidden="true"></i>
+            </span>
+        </div>
+        {% endif %}
+
+        <div class="wrap-input100">
+            <select class="input100" name="employee">
+                {% for (employee_id, employee) in employees %}
+                    <option value={{ employee_id }}>{{ employee }}</option>
+                {% endfor %}
+            </select>
+            <span class="focus-input100"></span>
+            <span class="symbol-input100">
+                <i class="fa fa-user" aria-hidden="true"></i>
+            </span>
+        </div>
+
+        <div class="wrap-input100">
+            <input class="input100" type="date" name="order_date" placeholder="Order date">
+            <span class="focus-input100"></span>
+            <span class="symbol-input100">
+                <i class="fa fa-calendar" aria-hidden="true"></i>
+            </span>
+        </div>
+
+        <div class="wrap-input100">
+            <select multiple class="input100" name="parts" style="height: 200px">
+                {% for (part_id, part) in parts %}
+                    <option value={{ part_id }}>{{ part }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="container-login100-form-btn">
+            <button class="login100-form-btn" type="submit">
+                Create
+            </button>
+        </div>
+    </form>
+
+</body>
+{% endblock %}

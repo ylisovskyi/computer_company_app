@@ -78,6 +78,7 @@
         {% if role in ('admin', 'manager') %}
         <a {% if title == 'Employees' %}class="active"{% endif %} href="../employees/">Employees</a>
         {% endif %}
+        <a style="float: right; alignment: right" href="../logout">Hello, {{ username }}. <b>Logout</b></a>
     </div>
 
 {% endblock %}

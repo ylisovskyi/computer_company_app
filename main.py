@@ -1,21 +1,10 @@
-import os
+from . import app, db
 
-from flask import Flask, Response, request, render_template, redirect, url_for
-from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user
+from flask import Response, request, render_template, redirect, url_for
+from flask_login import LoginManager, login_required, login_user, logout_user, current_user
+from models import *
 
-from flask_sqlalchemy import SQLAlchemy
-
-
-app = Flask(__name__)
-
-
-project_dir = os.path.dirname(os.path.abspath(__file__))
-database_file = "sqlite:///{}".format(os.path.join(project_dir, "computer_company.db"))
-app.config["SQLALCHEMY_DATABASE_URI"] = database_file
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
-app.config['user'] = None
-
-db = SQLAlchemy(app)
+from sqlalchemy import func
 
 # config
 app.config.update(
@@ -28,88 +17,130 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+orders = [
+        (1, 'Delivered', 'Han Rockhill', 'Matthew Hodgins', '05/05/2019', ['intel Core i7', 'Nvidia GeForce 1080Ti']),
+        (2, 'Canceled', 'John Greco', 'Matthew Hodgins', '10/05/2019', ['msi MStar 2010', 'Razer Mouz 23T']),
+        (3, 'Not started', 'Roderick Baldeviso', 'Dylan King', '20/05/2019', ['Gigabyte Zerix 700', 'Seagate 1TB', 'intel Core i9'])
+    ]
 
-class User(UserMixin, db.Model):
-
-    __tablename__ = 'user'
-
-    user_id = db.Column(
-        db.Integer,
-        unique=True,
-        nullable=False,
-        primary_key=True,
-        autoincrement=True
-    )
-    username = db.Column(db.String(25), unique=True, nullable=False)
-    password = db.Column(db.String(64), nullable=False)
-    role = db.Column(db.String(10), nullable=False)
-
-    def get_id(self):
-        return self.user_id
-
-
-class Orders(db.Model):
-
-    __tablename__ = 'Orders'
-
-    order_id = db.Column(
-        db.Integer,
-        unique=True,
-        nullable=False,
-        primary_key=True,
-        autoincrement=True
-    )
-    client = db.Column(db.String(25), unique=True, nullable=False)
-    part = db.Column(db.String(64), nullable=False)
-    status = db.Column(db.String(10), nullable=False)
-
-
-@app.route('/remove-user')
-@login_required
-def remove_user():
-    user_id = request.args.get('user-id')
-    User.query.filter_by(user_id=user_id).delete()
-    db.session.commit()
-    return redirect(url_for('users_page'))
-
-
-@app.route('/edit-user')
-@login_required
-def edit_user():
-    pass
+clients = [
+        (1, 'John Greco'),
+        (2, 'Roderick Baldeviso'),
+        (3, 'Han Rockhill')
+    ]
+employees = [
+    (1, 'Robert Ahlgren'),
+    (2, 'Matthew Hodgins'),
+    (3, 'Dylan King')
+]
+parts = [
+    (1, 'intel Core i7'),
+    (2, 'Nvidia GeForce 1080Ti'),
+    (3, 'msi MStar 2010'),
+    (4, 'Razer Mouz 23T'),
+    (5, 'Gigabyte Zerix 700'),
+    (6, 'Seagate 1TB'),
+    (7, 'intel Core i9')
+]
 
 
 @app.route('/')
 @login_required
 def home():
-    if not app.config['user']:
+    if not current_user:
         return redirect(url_for('login'))
 
-    return Response("Hello World!")
+    elif current_user.role in ('admin', 'manager'):
+        return redirect(url_for('users_page'))
+
+    elif current_user.role in ('client', 'employee'):
+        return redirect(url_for('orders_page'))
 
 
-@app.route('/orders/')
+@app.route('/assign-order/')
+@login_required
+def assign_order_page():
+    order_id = request.args.get('order-id')
+    employee_id = request.args.get('employee')
+    db.session.query(Order).filter(Order.order_id == order_id).update({Order.employee_id: employee_id}, synchronize_session=False)
+    db.session.commit()
+    return redirect(url_for('orders_page'))
+
+
+@app.route('/edit-order/', methods=['GET', 'POST'])
+@login_required
+def edit_order_page():
+    if request.method == 'POST':
+        client_id = request.form.get('client')
+        employee = request.form['employee']
+        parts = request.form['parts']
+        price = sum(db.session.query(Part.price).filter(Part.part_id in parts))
+        order_id = request.form.get('order_id')
+        db.session.query(Order).filter(Order.order_id == order_id).update({
+            Order.employee_id: employee,
+            client_id: client_id,
+            price: price,
+        }, synchronize_session=False)
+        db.session.commit()
+        return redirect(url_for(orders))
+
+
+@app.route('/orders/', methods=['GET', 'POST'])
 @login_required
 def orders_page():
-    orders = Orders.query
-    user = app.config['user']
+    if request.method == 'POST':
+        client_id = request.form.get('client')
+        employee = request.form['employee']
+        order_date = request.form['order_date']
+        date_id = db.session.query(func.count(Date.date_id)) + 1
+        date = OrderDate(date_id=date_id, order_date=order_date)
+        db.session.add(date)
+        parts = request.form['parts']
+        price = sum(db.session.query(Part.price).filter(Part.part_id in parts))
+        order_id = db.session.query(func.count(Order.order_id)) + 1
+        order = Order(
+            order_id=order_id,
+            client_id=client_id,
+            status_id=1,
+            employee_id=employee,
+            price=price,
+            date_id=date.date_id
+        )
+        db.session.add(order)
+        db.session.commit()
+        return redirect(url_for(orders))
+
     return render_template(
         'orders.html',
         orders=orders,
-        current_user=user.username,
-        role=user.role,
+        current_user=current_user.username,
+        username=current_user.username,
+        role=current_user.role,
+        employees=employees,
         title='Orders',
     )
 
 
-@app.route('/add_user/')
+@app.route('/cancel-order/')
 @login_required
-def add_user_page():
-    user = app.config['user']
+def cancel_order():
+    order_id = request.args.get('order-id')
+    db.session.query(Order).filter(Order.order_id == order_id).update({Order.status_id: 5}, synchronize_session=False)
+    db.session.commit()
+    return redirect(url_for('users_page'))
+
+
+@app.route('/add_order/')
+@login_required
+def add_order_page():
     return render_template(
-        'add_user.html',
-        role=user.role,
-        title='Add user',
+        'add_order.html',
+        title='Add order',
+        role=current_user.role,
+        username=current_user.username,
+        parts=parts,
+        clients=clients,
+        employees=employees
     )
 
 
@@ -120,24 +151,82 @@ def users_page():
     return render_template(
         'users_table.html',
         users=users,
-        role='admin',
+        role=current_user.role,
+        username=current_user.username,
         title='Users'
     )
+
+
+@app.route('/remove-user/')
+@login_required
+def remove_user():
+    user_id = request.args.get('user-id')
+    db.session.query(User).filter(User.user_id == user_id).delete(synchronize_session=False)
+    db.session.commit()
+    return redirect(url_for('users_page'))
 
 
 @app.route("/register/", methods=["GET", "POST"])
 def register_user():
     if request.method == 'POST':
+        name = request.form['name']
+        lastname = request.form['lastname']
+        email = request.form['email']
+        phone = request.form['number']
         username = request.form['username']
         password = request.form['pass']
+        rep_pass = request.form['reppass']
         role = request.form['role']
         _user = User.query.filter_by(username=username).first()
         if _user:
             return 'Such user already exists'
 
+        elif password != rep_pass:
+            return 'Passwords do not match'
+
+        elif '@' not in email:
+            return 'E-mail is not valid'
+
         else:
-            _user = User(username=username, password=password, role=role)
-            print _user.username
+            emp_id = None
+            pi_l = len(PersonalInfo.query.all()) + 3
+            personal_info = PersonalInfo(
+                personal_info_id=pi_l,
+                person_name=name,
+                person_surname=lastname,
+                phone_number=phone,
+                email=email
+            )
+            db.session.add(personal_info)
+            db.session.commit()
+            if role == 'employee':
+                role_id = EmployeeRole.query.filter_by(role_name=role).first().role_id
+                e_l = len(Employee.query.all()) + 1
+                employee = Employee(
+                    employee_id=e_l,
+                    company_id=1,
+                    role_id=role_id,
+                    personal_info_id=personal_info.personal_info_id
+                )
+                emp_id = employee.employee_id
+                db.session.add(employee)
+                db.session.commit()
+
+            elif role == 'client':
+                c_l = len(Client.query.all()) + 1
+                client = Client(
+                    client_id=c_l,
+                    personal_info_id=personal_info.personal_info_id
+                )
+                db.session.add(client)
+                db.session.commit()
+
+            _user = User(
+                username=username,
+                password=password,
+                employee=emp_id,
+                role=role
+            )
             db.session.add(_user)
             db.session.commit()
 
@@ -154,11 +243,10 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user is not None and user.password == password:
             login_user(user)
-            app.config['user'] = user
-            if user.role == 'admin':
+            if user.role in ('admin', 'manager'):
                 return redirect(url_for('users_page'))
 
-            elif user.role == 'client':
+            elif user.role in ('client', 'employee'):
                 return redirect(url_for('orders_page'))
 
         return 'No such user'
@@ -170,7 +258,7 @@ def login():
 @login_required
 def logout():
     logout_user()
-    return Response('<p>Logged out</p>')
+    return redirect(url_for('login'))
 
 
 @app.errorhandler(401)
