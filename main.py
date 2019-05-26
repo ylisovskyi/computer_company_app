@@ -62,7 +62,10 @@ def home():
 def assign_order_page():
     order_id = request.args.get('order-id')
     employee_id = request.args.get('employee')
-    db.session.query(Order).filter(Order.order_id == order_id).update({Order.employee_id: employee_id}, synchronize_session=False)
+    db.session.query(Order).filter(Order.order_id == order_id).update(
+        {Order.employee_id: employee_id},
+        synchronize_session=False
+    )
     db.session.commit()
     return redirect(url_for('orders_page'))
 
@@ -76,13 +79,32 @@ def edit_order_page():
         parts = request.form['parts']
         price = sum(db.session.query(Part.price).filter(Part.part_id in parts))
         order_id = request.form.get('order_id')
+        db.session.query(PartsProvision).filter(PartsProvision.order_id == order_id).delete(synchronize_session=False)
+        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
+        for part_id in parts:
+            db.session.add(PartsProvision(
+                provision_id=provision_start_id,
+                order_id=order_id,
+                part_id=part_id
+            ))
+            provision_start_id += 1
         db.session.query(Order).filter(Order.order_id == order_id).update({
             Order.employee_id: employee,
             client_id: client_id,
             price: price,
         }, synchronize_session=False)
         db.session.commit()
-        return redirect(url_for(orders))
+        return redirect(url_for('orders_page'))
+
+    order_id = request.args.get('order-id')
+    order_info = db.session.query(Order).filter(Order.order_id == order_id).first()
+    orders = db.session.query(Order).all()
+    return render_template(
+        'edit_order.html',
+        role=current_user.role,
+        username=current_user.username,
+        order=order_info
+    )
 
 
 @app.route('/orders/', methods=['GET', 'POST'])
@@ -107,9 +129,35 @@ def orders_page():
             date_id=date.date_id
         )
         db.session.add(order)
+        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
+        for part_id in parts:
+            db.session.add(PartsProvision(
+                provision_id=provision_start_id,
+                order_id=order.order_id,
+                part_id=part_id
+            ))
+            provision_start_id += 1
         db.session.commit()
-        return redirect(url_for(orders))
+        return redirect(url_for('orders_page'))
 
+    employees = db.session.query(Employee.employee_id, PersonalInfo.person_name).join(
+        PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
+    ).filter(Employee.role_id == 7)
+    orders = db.session.query(
+        Order.order_id, OrderStatu.status_name, Client.personal_info.person_name, Employee.personal_info.person_name, OrderDate.order_date
+    ).join(
+        OrderStatu, Order.status_id == OrderStatu.status_id
+    ).join(
+        Client, Order.client_id == Client.client_id
+    ).join(
+        PersonalInfo, Client.personal_info_id == PersonalInfo.personal_info_id
+    ).join(
+        Employee, Order.employee_id == Employee.employee_id
+    ).join(
+        PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
+    ).join(
+        OrderDate, Order.date_id == OrderDate.date_id
+    )
     return render_template(
         'orders.html',
         orders=orders,

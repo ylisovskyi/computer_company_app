@@ -18,7 +18,7 @@
             <td>Assign</td>
             {% endif %}
         </tr>
-        {% for (order, order_status, client, employee, date, parts) in orders %}
+        {% for (order, order_status, client, employee, date) in orders %}
         {% if (role not in ('admin', 'manager') and current_user == client) or role in ('admin', 'manager') %}
         <tr>
             <td>{{ order }}</td>
@@ -51,7 +51,7 @@
             <td>
                 <select class="input100" name="employee" style="padding: 0 10px 0 10px">
                 {% for (employee_id, employee_name) in employees %}
-                    <option{% if employee == employee_name %} selected="selected"{% endif %}  value={{ employee_id }}>
+                    <option{% if employee == employee_name %} selected="selected"{% endif %} value={{ employee_id }}>
                         {{ employee_name }}
                     </option>
                 {% endfor %}
