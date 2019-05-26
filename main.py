@@ -92,10 +92,8 @@ def orders_page():
         date_id = db.session.query(func.count(OrderDate.date_id)).first()[0] + 1
         date = OrderDate(date_id=date_id, order_date=order_date)
         db.session.add(date)
-        parts = []
-        for arg in request.form:
-            if arg[0] == 'parts':
-                parts.append(int(arg[1]))
+        args = dict(request.form)
+        parts = [int(part) for part in args['parts']]
         price = sum(int(part[0]) for part in db.session.query(Part.price).filter(Part.part_id in parts).all())
         order_id = db.session.query(func.count(Order.order_id)).first()[0] + 2
         order = Order(
@@ -109,11 +107,12 @@ def orders_page():
         db.session.add(order)
         provision_start_id = db.session.query(func.count(PartsProvision.provision_id)).first()[0] + 1
         for part_id in parts:
-            db.session.add(PartsProvision(
+            part_provision = PartsProvision(
                 provision_id=provision_start_id,
                 order_id=order.order_id,
                 part_id=part_id
-            ))
+            )
+            db.session.add(part_provision)
             provision_start_id += 1
         db.session.commit()
         return redirect(url_for('orders_page'))
