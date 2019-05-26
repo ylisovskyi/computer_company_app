@@ -72,10 +72,10 @@ class Order(db.Model):
     status_id = db.Column(db.ForeignKey('OrderStatus.status_id'), nullable=False)
     employee_id = db.Column(db.ForeignKey('Employee.employee_id'), nullable=False)
     price = db.Column(MONEY, nullable=False)
-    date_id = db.Column(db.ForeignKey('Date.date_id'))
+    date_id = db.Column(db.ForeignKey('OrderDate.date_id'))
 
     client = db.relationship('Client', primaryjoin='Order.client_id == Client.client_id', backref='orders')
-    date = db.relationship('Date', primaryjoin='Order.date_id == Date.date_id', backref='orders')
+    date = db.relationship('OrderDate', primaryjoin='Order.date_id == OrderDate.date_id', backref='orders')
     employee = db.relationship('Employee', primaryjoin='Order.employee_id == Employee.employee_id', backref='orders')
     status = db.relationship('OrderStatu', primaryjoin='Order.status_id == OrderStatu.status_id', backref='orders')
 

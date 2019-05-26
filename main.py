@@ -5,6 +5,7 @@ from flask_login import LoginManager, login_required, login_user, logout_user, c
 from models import *
 
 from sqlalchemy import func
+from sqlalchemy.orm import aliased
 
 # config
 app.config.update(
@@ -16,32 +17,6 @@ app.config.update(
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
-
-orders = [
-        (1, 'Delivered', 'Han Rockhill', 'Matthew Hodgins', '05/05/2019', ['intel Core i7', 'Nvidia GeForce 1080Ti']),
-        (2, 'Canceled', 'John Greco', 'Matthew Hodgins', '10/05/2019', ['msi MStar 2010', 'Razer Mouz 23T']),
-        (3, 'Not started', 'Roderick Baldeviso', 'Dylan King', '20/05/2019', ['Gigabyte Zerix 700', 'Seagate 1TB', 'intel Core i9'])
-    ]
-
-clients = [
-        (1, 'John Greco'),
-        (2, 'Roderick Baldeviso'),
-        (3, 'Han Rockhill')
-    ]
-employees = [
-    (1, 'Robert Ahlgren'),
-    (2, 'Matthew Hodgins'),
-    (3, 'Dylan King')
-]
-parts = [
-    (1, 'intel Core i7'),
-    (2, 'Nvidia GeForce 1080Ti'),
-    (3, 'msi MStar 2010'),
-    (4, 'Razer Mouz 23T'),
-    (5, 'Gigabyte Zerix 700'),
-    (6, 'Seagate 1TB'),
-    (7, 'intel Core i9')
-]
 
 
 @app.route('/')
@@ -114,12 +89,15 @@ def orders_page():
         client_id = request.form.get('client')
         employee = request.form['employee']
         order_date = request.form['order_date']
-        date_id = db.session.query(func.count(Date.date_id)) + 1
+        date_id = db.session.query(func.count(OrderDate.date_id)).first()[0] + 1
         date = OrderDate(date_id=date_id, order_date=order_date)
         db.session.add(date)
-        parts = request.form['parts']
-        price = sum(db.session.query(Part.price).filter(Part.part_id in parts))
-        order_id = db.session.query(func.count(Order.order_id)) + 1
+        parts = []
+        for arg in request.form:
+            if arg[0] == 'parts':
+                parts.append(int(arg[1]))
+        price = sum(int(part[0]) for part in db.session.query(Part.price).filter(Part.part_id in parts).all())
+        order_id = db.session.query(func.count(Order.order_id)).first()[0] + 2
         order = Order(
             order_id=order_id,
             client_id=client_id,
@@ -129,7 +107,7 @@ def orders_page():
             date_id=date.date_id
         )
         db.session.add(order)
-        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
+        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)).first()[0] + 1
         for part_id in parts:
             db.session.add(PartsProvision(
                 provision_id=provision_start_id,
@@ -142,22 +120,33 @@ def orders_page():
 
     employees = db.session.query(Employee.employee_id, PersonalInfo.person_name).join(
         PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
-    ).filter(Employee.role_id == 7)
+    ).filter(Employee.role_id > 1).all()
+    client = aliased(PersonalInfo)
+    emp = aliased(PersonalInfo)
     orders = db.session.query(
-        Order.order_id, OrderStatu.status_name, Client.personal_info.person_name, Employee.personal_info.person_name, OrderDate.order_date
+        Order.order_id, OrderStatu.status_name, client.person_name, emp.person_name, OrderDate.order_date
     ).join(
         OrderStatu, Order.status_id == OrderStatu.status_id
     ).join(
         Client, Order.client_id == Client.client_id
     ).join(
-        PersonalInfo, Client.personal_info_id == PersonalInfo.personal_info_id
+        client, Client.personal_info_id == client.personal_info_id
     ).join(
         Employee, Order.employee_id == Employee.employee_id
     ).join(
-        PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
+        emp, Employee.personal_info_id == emp.personal_info_id
     ).join(
         OrderDate, Order.date_id == OrderDate.date_id
-    )
+    ).order_by(Order.order_id).all()
+    parts = []
+    for order in orders:
+        parts.append(db.session.query(Part.part_name).join(
+            PartsProvision, Part.part_id == PartsProvision.part_id
+        ).join(
+            Order, order.order_id == PartsProvision.order_id
+        ).distinct())
+
+    orders = zip(orders, parts)
     return render_template(
         'orders.html',
         orders=orders,
@@ -181,6 +170,13 @@ def cancel_order():
 @app.route('/add_order/')
 @login_required
 def add_order_page():
+    parts = db.session.query(Part.part_id, Part.part_name).order_by(Part.part_id).all()
+    clients = db.session.query(Client.client_id, PersonalInfo.person_name).join(
+        PersonalInfo, Client.personal_info_id == PersonalInfo.personal_info_id
+    ).all()
+    employees = db.session.query(Employee.employee_id, PersonalInfo.person_name).join(
+        PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
+    ).filter(Employee.role_id > 1).all()
     return render_template(
         'add_order.html',
         title='Add order',

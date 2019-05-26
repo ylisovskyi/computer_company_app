@@ -18,31 +18,31 @@
             <td>Assign</td>
             {% endif %}
         </tr>
-        {% for (order, order_status, client, employee, date) in orders %}
+        {% for order in orders %}
         {% if (role not in ('admin', 'manager') and current_user == client) or role in ('admin', 'manager') %}
         <tr>
-            <td>{{ order }}</td>
-            <td>{{ order_status }}</td>
-            <td>{{ client }}</td>
-            <td>{{ employee }}</td>
-            <td>{{ date }}</td>
+            <td>{{ order[0][0] }}</td>
+            <td>{{ order[0][1] }}</td>
+            <td>{{ order[0][2] }}</td>
+            <td>{{ order[0][3] }}</td>
+            <td>{{ order[0][4] }}</td>
             <td>
                 <select class="input100" style="padding: 0 10px 0 10px">
-                    {% for part in parts %}
-                        <option>{{ part }}</option>
+                    {% for part in order[1] %}
+                        <option>{{ part[0] }}</option>
                     {% endfor %}
                 </select>
             </td>
             <td>
                 <button class="login100-form-btn" style="height: 30px">
-                    <a href="/edit-order?order-id={{ order }}">
+                    <a href="/edit-order?order-id={{ order[0][0] }}">
                         Edit
                     </a>
                 </button>
             </td>
             <td>
                 <button class="login100-form-btn" style="height: 30px">
-                    <a href="/cancel-order?order-id={{ order }}">
+                    <a href="/cancel-order?order-id={{ order[0][0] }}">
                         Cancel
                     </a>
                 </button>
@@ -51,7 +51,7 @@
             <td>
                 <select class="input100" name="employee" style="padding: 0 10px 0 10px">
                 {% for (employee_id, employee_name) in employees %}
-                    <option{% if employee == employee_name %} selected="selected"{% endif %} value={{ employee_id }}>
+                    <option{% if order[0][3] == employee_name %} selected="selected"{% endif %} value={{ employee_id }}>
                         {{ employee_name }}
                     </option>
                 {% endfor %}
