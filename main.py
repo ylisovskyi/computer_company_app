@@ -60,7 +60,9 @@ def edit_order_page():
             int(part[0])
             for part in db.session.query(Part.price).filter(Part.part_id in parts).all()
         )
-        db.session.query(PartsProvision).filter(PartsProvision.order_id == order_id).delete(synchronize_session=False)
+        db.session.query(PartsProvision).filter(
+            PartsProvision.order_id == order_id
+        ).delete(synchronize_session=False)
         provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
         for part_id in parts:
             db.session.add(PartsProvision(
@@ -135,7 +137,10 @@ def orders_page():
         db.session.add(date)
         args = dict(request.form)
         parts = [int(part) for part in args['parts']]
-        price = sum(int(part[0]) for part in db.session.query(Part.price).filter(Part.part_id in parts).all())
+        price = sum(
+            int(part[0])
+            for part in db.session.query(Part.price).filter(Part.part_id in parts).all()
+        )
         order_id = db.session.query(func.count(Order.order_id)).first()[0] + 2
         order = Order(
             order_id=order_id,
@@ -146,7 +151,9 @@ def orders_page():
             date_id=date.date_id
         )
         db.session.add(order)
-        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)).first()[0] + 1
+        provision_start_id = db.session.query(
+            func.count(PartsProvision.provision_id)
+        ).first()[0] + 1
         for part_id in parts:
             part_provision = PartsProvision(
                 provision_id=provision_start_id,
@@ -164,7 +171,11 @@ def orders_page():
     client = aliased(PersonalInfo)
     emp = aliased(PersonalInfo)
     orders = db.session.query(
-        Order.order_id, OrderStatu.status_name, client.person_name, emp.person_name, OrderDate.order_date
+        Order.order_id,
+        OrderStatu.status_name,
+        client.person_name,
+        emp.person_name,
+        OrderDate.order_date
     ).join(
         OrderStatu, Order.status_id == OrderStatu.status_id
     ).join(
@@ -202,7 +213,10 @@ def orders_page():
 @login_required
 def cancel_order():
     order_id = request.args.get('order-id')
-    db.session.query(Order).filter(Order.order_id == order_id).update({Order.status_id: 5}, synchronize_session=False)
+    db.session.query(Order).filter(Order.order_id == order_id).update(
+        {Order.status_id: 5},
+        synchronize_session=False
+    )
     db.session.commit()
     return redirect(url_for('users_page'))
 

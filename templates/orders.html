@@ -49,7 +49,7 @@
             </td>
         {% if role in ('admin', 'manager') %}
             <td>
-                <select class="input100" name="employee" style="padding: 0 10px 0 10px">
+                <select class="input100" name="employee" style="padding: 0 10px 0 10px" onchange="select_listener()">
                 {% for (employee_id, employee_name) in employees %}
                     <option{% if order[0][3] == employee_name %} selected="selected"{% endif %} value={{ employee_id }}>
                         {{ employee_name }}
@@ -72,4 +72,8 @@
     </button>
 </div>
 </body>
+
+<script >
+
+</script>
 {% endblock %}
