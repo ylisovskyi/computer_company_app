@@ -19,7 +19,9 @@
             {% endif %}
         </tr>
         {% for order in orders %}
-        {% if (role not in ('admin', 'manager') and current_user == client) or role in ('admin', 'manager') %}
+        {% if (role in ('client') and client_name == order[0][2]) or
+        (role in ('admin', 'manager')) or
+        (role in ('employee') and user_emp_name == order[0][3]) %}
         <tr>
             <td>{{ order[0][0] }}</td>
             <td>{{ order[0][1] }}</td>
@@ -49,9 +51,9 @@
             </td>
         {% if role in ('admin', 'manager') %}
             <td>
-                <select class="input100" name="employee" style="padding: 0 10px 0 10px" onchange="select_listener()">
+                <select class="input100" name="employee" style="padding: 0 10px 0 10px" onchange="select_listener( this )">
                 {% for (employee_id, employee_name) in employees %}
-                    <option{% if order[0][3] == employee_name %} selected="selected"{% endif %} value={{ employee_id }}>
+                    <option{% if order[0][3] == employee_name %} selected="selected"{% endif %} value={{ employee_id }} name={{ order[0][0] }}>
                         {{ employee_name }}
                     </option>
                 {% endfor %}
@@ -74,6 +76,15 @@
 </body>
 
 <script >
-
+    function select_listener(elem) {
+        var strUser = (elem.selectedIndex + 1).toString();
+        let order_id = elem.parentElement.parentElement.childNodes[1].innerText;
+        console.log(order_id);
+        console.log(strUser);
+        $.post("/assign-order/", {
+            'order-id': order_id,
+            'employee-id': strUser
+        });
+    }
 </script>
 {% endblock %}

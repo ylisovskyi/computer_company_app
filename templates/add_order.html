@@ -8,7 +8,7 @@
 <br>
     <form class="login100-form validate-form" action="../orders/" style="margin-left: 20px" method="post">
 
-        {% if role in ('admin', 'manager') %}
+        {% if role != 'client' %}
         <div class="wrap-input100">
             <select class="input100" name="client">
                 {% for (client_id, client) in clients %}
@@ -22,6 +22,7 @@
         </div>
         {% endif %}
 
+        {% if role != 'employee' %}
         <div class="wrap-input100">
             <select class="input100" name="employee">
                 {% for (employee_id, employee) in employees %}
@@ -33,6 +34,7 @@
                 <i class="fa fa-user" aria-hidden="true"></i>
             </span>
         </div>
+        {% endif %}
 
         <div class="wrap-input100">
             <input class="input100" type="date" name="order_date" placeholder="Order date">

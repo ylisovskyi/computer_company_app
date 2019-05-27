@@ -9,7 +9,6 @@
                 <td style="width: 60px; align-content: center">User ID</td>
                 <td style="width: 300px">Username</td>
                 <td style="width: 300px">Role</td>
-                <td style="width: 50px">Edit</td>
                 <td style="width: 50px">Remove</td>
             </tr>
             {% for user in users %}
@@ -17,18 +16,10 @@
                 <td style="align-content: center">{{ user.user_id }}</td>
                 <td style="width: 300px">{{ user.username }}</td>
                 <td>{{ user.role }}</td>
-                <td><button class="login100-form-btn" style="height: 30px">Edit</button></td>
                 <td><button class="login100-form-btn" style="height: 30px"><a href="/remove-user?user-id={{ user.user_id }}">Remove</a></button></td>
             </tr>
             {% endfor %}
         </table>
-    </div>
-    <div style="padding-top: 20px; padding-left: 20px">
-        <button class="login100-form-btn" style="height: 30px; width: 150px;">
-            <a href="../add_user/" style="color: #fff; font-weight: bold; text-transform: uppercase; font-family: Montserrat-Bold">
-                Add user
-            </a>
-        </button>
     </div>
 
 </body>

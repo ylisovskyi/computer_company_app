@@ -32,13 +32,14 @@ def home():
         return redirect(url_for('orders_page'))
 
 
-@app.route('/assign-order/')
+@app.route('/assign-order/', methods=['POST'])
 @login_required
 def assign_order_page():
-    order_id = request.args.get('order-id')
-    employee_id = request.args.get('employee')
+    print(request.form)
+    order_id = request.form['order-id']
+    employee_id = request.form['employee-id']
     db.session.query(Order).filter(Order.order_id == order_id).update(
-        {Order.employee_id: employee_id},
+        {Order.employee_id: int(employee_id) + 2},
         synchronize_session=False
     )
     db.session.commit()
@@ -63,7 +64,7 @@ def edit_order_page():
         db.session.query(PartsProvision).filter(
             PartsProvision.order_id == order_id
         ).delete(synchronize_session=False)
-        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
+        provision_start_id = db.session.query(func.count(PartsProvision.provision_id)).first()[0] + 1
         for part_id in parts:
             db.session.add(PartsProvision(
                 provision_id=provision_start_id,
@@ -72,7 +73,7 @@ def edit_order_page():
             ))
             provision_start_id += 1
 
-        date_id = db.session.query(func.count(OrderDate.date_id)) + 1
+        date_id = db.session.query(func.count(OrderDate.date_id)).first()[0] + 1
         date = OrderDate(
             date_id=date_id,
             order_date=order_date
@@ -94,7 +95,7 @@ def edit_order_page():
 
     clients = db.session.query(Client.client_id, PersonalInfo.person_name).join(
         PersonalInfo, Client.personal_info_id == PersonalInfo.personal_info_id
-    ).filter(Client.role_id > 1).all()
+    ).all()
 
     order = db.session.query(
         Order.order_id, Order.status_id, Order.client_id, Order.employee_id, OrderDate.order_date
@@ -129,8 +130,24 @@ def edit_order_page():
 @login_required
 def orders_page():
     if request.method == 'POST':
-        client_id = request.form.get('client')
-        employee = request.form['employee']
+        if current_user.role == 'employee':
+            employee = db.session.query(Employee.employee_id).join(
+                User, User.employee == Employee.employee_id
+            ).first()
+            if employee:
+                employee = employee[0]
+
+        else:
+            employee = request.form['employee']
+
+        if current_user.role == 'client':
+            client_id = db.session.query(Client.client_id).join(
+                User, User.employee == Client.client_id
+            ).first()
+            if client_id:
+                client_id = client_id[0]
+        else:
+            client_id = request.form.get('client')
         order_date = request.form['order_date']
         date_id = db.session.query(func.count(OrderDate.date_id)).first()[0] + 1
         date = OrderDate(date_id=date_id, order_date=order_date)
@@ -198,6 +215,21 @@ def orders_page():
         ).distinct())
 
     orders = zip(orders, parts)
+    user_emp_name = db.session.query(PersonalInfo.person_name).join(
+        Employee, Employee.personal_info_id == PersonalInfo.personal_info_id
+    ).join(
+        User, User.employee == Employee.employee_id
+    ).first()
+    client_name = db.session.query(PersonalInfo.person_name).join(
+        Client, Client.personal_info_id == PersonalInfo.personal_info_id
+    ).join(
+        User, User.employee == Client.client_id
+    ).first()
+    if user_emp_name:
+        user_emp_name = user_emp_name[0]
+
+    if client_name:
+        client_name = client_name[0]
     return render_template(
         'orders.html',
         orders=orders,
@@ -206,6 +238,8 @@ def orders_page():
         role=current_user.role,
         employees=employees,
         title='Orders',
+        user_emp_name=user_emp_name,
+        client_name=client_name
     )
 
 
@@ -286,7 +320,7 @@ def register_user():
             return 'E-mail is not valid'
 
         else:
-            emp_id = None
+            person_id = None
             pi_l = len(PersonalInfo.query.all()) + 3
             personal_info = PersonalInfo(
                 personal_info_id=pi_l,
@@ -299,30 +333,32 @@ def register_user():
             db.session.commit()
             if role == 'employee':
                 role_id = EmployeeRole.query.filter_by(role_name=role).first().role_id
-                e_l = len(Employee.query.all()) + 1
+                e_l = len(Employee.query.all()) + 2
                 employee = Employee(
                     employee_id=e_l,
                     company_id=1,
                     role_id=role_id,
                     personal_info_id=personal_info.personal_info_id
                 )
-                emp_id = employee.employee_id
+                person_id = employee.employee_id
                 db.session.add(employee)
                 db.session.commit()
 
             elif role == 'client':
-                c_l = len(Client.query.all()) + 1
+                c_l = len(Client.query.all()) + 2
                 client = Client(
                     client_id=c_l,
                     personal_info_id=personal_info.personal_info_id
                 )
+                person_id = client.client_id
                 db.session.add(client)
                 db.session.commit()
+
 
             _user = User(
                 username=username,
                 password=password,
-                employee=emp_id,
+                employee=person_id,
                 role=role
             )
             db.session.add(_user)
