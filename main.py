@@ -49,11 +49,17 @@ def assign_order_page():
 @login_required
 def edit_order_page():
     if request.method == 'POST':
-        client_id = request.form.get('client')
-        employee = request.form['employee']
-        parts = request.form['parts']
-        price = sum(db.session.query(Part.price).filter(Part.part_id in parts))
         order_id = request.form.get('order_id')
+        client_id = request.form.get('client')
+        employee = request.form.get('employee')
+        status_id = request.form.get('status')
+        order_date = request.form.get('order_date')
+        args = dict(request.form)
+        parts = [int(part) for part in args['parts']]
+        price = sum(
+            int(part[0])
+            for part in db.session.query(Part.price).filter(Part.part_id in parts).all()
+        )
         db.session.query(PartsProvision).filter(PartsProvision.order_id == order_id).delete(synchronize_session=False)
         provision_start_id = db.session.query(func.count(PartsProvision.provision_id)) + 1
         for part_id in parts:
@@ -63,22 +69,57 @@ def edit_order_page():
                 part_id=part_id
             ))
             provision_start_id += 1
+
+        date_id = db.session.query(func.count(OrderDate.date_id)) + 1
+        date = OrderDate(
+            date_id=date_id,
+            order_date=order_date
+        )
+        db.session.add(date)
         db.session.query(Order).filter(Order.order_id == order_id).update({
             Order.employee_id: employee,
-            client_id: client_id,
-            price: price,
+            Order.client_id: client_id,
+            Order.price: price,
+            Order.status_id: status_id,
+            Order.date_id: date_id
         }, synchronize_session=False)
         db.session.commit()
         return redirect(url_for('orders_page'))
 
-    order_id = request.args.get('order-id')
-    order_info = db.session.query(Order).filter(Order.order_id == order_id).first()
-    orders = db.session.query(Order).all()
+    employees = db.session.query(Employee.employee_id, PersonalInfo.person_name).join(
+        PersonalInfo, Employee.personal_info_id == PersonalInfo.personal_info_id
+    ).filter(Employee.role_id > 1).all()
+
+    clients = db.session.query(Client.client_id, PersonalInfo.person_name).join(
+        PersonalInfo, Client.personal_info_id == PersonalInfo.personal_info_id
+    ).filter(Client.role_id > 1).all()
+
+    order = db.session.query(
+        Order.order_id, Order.status_id, Order.client_id, Order.employee_id, OrderDate.order_date
+    ).join(
+        OrderDate, Order.date_id == OrderDate.date_id
+    ).filter(Order.order_id == request.args.get('order-id')).first()
+
+    order_parts = db.session.query(Part.part_id).join(
+        PartsProvision, Part.part_id == PartsProvision.part_id
+    ).join(
+        Order, order.order_id == PartsProvision.order_id
+    ).distinct()
+
+    total_parts = db.session.query(Part.part_id, Part.part_name).all()
+
+    statuses = db.session.query(OrderStatu.status_id, OrderStatu.status_name).all()
+
     return render_template(
         'edit_order.html',
         role=current_user.role,
         username=current_user.username,
-        order=order_info
+        order=order,
+        parts=total_parts,
+        employees=employees,
+        clients=clients,
+        order_parts=order_parts,
+        statuses=statuses
     )
 
 
