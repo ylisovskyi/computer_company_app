@@ -276,6 +276,39 @@ def add_order_page():
     )
 
 
+@app.route('/edit-user/', methods=['GET', 'POST'])
+@login_required
+def edit_user():
+    if request.method == 'POST':
+        user_id = request.form.get('user_id')
+        username = request.form.get('username')
+        password = request.form.get('pass')
+        role = request.form.get('role')
+        _user = User.query.filter_by(username=username).first()
+        if _user:
+            return 'Such user already exists'
+        db.session.query(User).filter(User.user_id == user_id).update({
+            User.username: username,
+            User.password: password,
+            User.role: role
+        }, synchronize_session=False)
+        db.session.commit()
+        return redirect(url_for('users_page'))
+
+    user_id = request.args.get('user-id')
+
+    user = db.session.query(
+        User.user_id, User.username, User.password, User.role
+    ).filter(User.user_id == user_id).first()
+
+    return render_template(
+        'edit_user.html',
+        role=current_user.role,
+        username=current_user.username,
+        user=user
+    )
+
+
 @app.route('/users/')
 @login_required
 def users_page():
